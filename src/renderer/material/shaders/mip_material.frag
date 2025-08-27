@@ -11,6 +11,7 @@ in vec3 pos;
 
 layout (location = 0) out vec4 outColor;
 
+// Also not needed
 vec3 estimate_normal(vec3 uvw) {
     float x = texture(tex, uvw + vec3(h.x, 0.0, 0.0)).r - texture(tex, uvw - vec3(h.x, 0.0, 0.0)).r;
     float y = texture(tex, uvw + vec3(0.0, h.y, 0.0)).r - texture(tex, uvw - vec3(0.0, h.y, 0.0)).r;
@@ -19,43 +20,47 @@ vec3 estimate_normal(vec3 uvw) {
 }
 
 void main() {
+    // Maybe parametrize number of steps along the ray 
     int steps = 200;
     vec3 rayDir = normalize(pos - cameraPosition);
-    // Start the ray from the camera position by default
-    const float minDistFromCamera = 0.2;
-    vec3 rayPos = cameraPosition + minDistFromCamera * rayDir;
+    vec3 rayPos = pos;
+    
     float stepSize = length(size) / float(steps);
+
     vec3 step = rayDir * stepSize;
     
-    for (int i = 0; i < 200; i++) {
-        if (i == steps-1) {
-            // Out of steps: transparent
-            outColor = vec4(0.0, 0.0, 0.0, 0.0);
-            break;
-        }
+    float max_val = 0.0; // Default value along the ray
+    vec3 max_uvw = (rayPos / size) + 0.5;
+    
+    for (int i = 0; i < steps; i++) {
         if (rayPos.x < -0.501*size.x || rayPos.y < -0.501*size.y || rayPos.z < -0.501*size.z ||
         rayPos.x > 0.501*size.x || rayPos.y > 0.501*size.y || rayPos.z > 0.501*size.z) {
             // Out of bounds
-            if (i == 0) {
-                // Use the contact point on the box as the starting point
-                rayPos = pos;
-            } else {
-                // Debug the number of steps:
-                //outColor = vec4(0.0, float(i)/float(steps), 0.0, 1.0);
-                outColor = vec4(0.5, 0.5, 0.5, 0.0);
-                break;
-            }
-        }
-        vec3 uvw = (rayPos / size) + 0.5;
-        float surfaceDensity = texture(tex, uvw).r - threshold;
-        if (surfaceDensity >= 0.0) { // We hit the surface
-            vec3 normal = estimate_normal(uvw);
-            outColor.rgb = calculate_lighting(cameraPosition, surfaceColor.rgb, rayPos, normal, metallic, roughness, 1.0);
-            outColor.rgb = tone_mapping(outColor.rgb);
-            outColor.rgb = color_mapping(outColor.rgb);
-            outColor.a = surfaceColor.a;
+            outColor = vec4(0.0, 0.0, 0.0, 0.0);
             break;
         }
+
+        vec3 uvw = (rayPos / size) + 0.5;
+
+        float val = texture(tex, uvw).r;
+
+        if (val > max_val){
+            max_val = val;
+        }
+
+        // Also do not need this (IsoSurface rendering quantity)
+        float surfaceDensity = texture(tex, uvw).r - threshold;
+
         rayPos += step;
     }
+    
+    // Free to remove this, we do not need ani lightning for xray stuff
+    vec3 normal = estimate_normal(max_uvw);
+    outColor.rgb = calculate_lighting(cameraPosition, surfaceColor.rgb, rayPos, normal, metallic, roughness, 1.0);
+    outColor.rgb = tone_mapping(outColor.rgb);
+    outColor.rgb = color_mapping(outColor.rgb);
+    outColor.a = surfaceColor.a;
+
+    outColor = vec4(vec3(max_val), 1.0);
+
 }

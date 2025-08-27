@@ -75,6 +75,10 @@ mod isosurface_material;
 #[doc(inline)]
 pub use isosurface_material::*;
 
+mod mip_material;
+#[doc(inline)]
+pub use mip_material::*;
+
 use std::{ops::Deref, sync::Arc};
 
 ///

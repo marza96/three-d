@@ -38,26 +38,8 @@ impl Material for MIPMaterial {
     }
 
     fn use_uniforms(&self, program: &Program, viewer: &dyn Viewer, lights: &[&dyn Light]) {
-        program.use_uniform_if_required("lightingModel", lighting_model_to_id(self.lighting_model));
-        viewer.tone_mapping().use_uniforms(program);
-        viewer.color_mapping().use_uniforms(program);
-        for (i, light) in lights.iter().enumerate() {
-            light.use_uniforms(program, i as u32);
-        }
         program.use_uniform("cameraPosition", viewer.position());
-        program.use_uniform("surfaceColor", self.color.to_linear_srgb());
-        program.use_uniform("metallic", self.metallic);
-        program.use_uniform_if_required("roughness", self.roughness);
         program.use_uniform("size", self.size);
-        program.use_uniform("threshold", self.threshold);
-        program.use_uniform(
-            "h",
-            vec3(
-                1.0 / self.voxels.width() as f32,
-                1.0 / self.voxels.height() as f32,
-                1.0 / self.voxels.depth() as f32,
-            ),
-        );
         program.use_texture_3d("tex", &self.voxels);
     }
     fn render_states(&self) -> RenderStates {
